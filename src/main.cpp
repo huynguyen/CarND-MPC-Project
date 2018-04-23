@@ -8,6 +8,8 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "MPC.h"
 #include "json.hpp"
+#include <cppad/cppad.hpp>
+#include <cppad/ipopt/solve.hpp>
 
 // for convenience
 using json = nlohmann::json;
@@ -91,6 +93,8 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
+          double str = j[1]["steering_angle"];
+          double throttle = j[1]["throttle"];
 
           /*
           * TODO: Calculate steering angle and throttle using MPC.
@@ -98,8 +102,47 @@ int main() {
           * Both are in between [-1, 1].
           *
           */
-          double steer_value;
-          double throttle_value;
+          vector<double> ptsxVehicle(ptsx.size());
+          vector<double> ptsyVehicle(ptsy.size());
+
+          double cached_cos = cos(psi);
+          double cached_sin = sin(psi);
+          for(int i=0; i < ptsx.size(); i++) {
+            double diffx = ptsx[i] - px;
+            double diffy = ptsy[i] - py;
+            ptsxVehicle[i] = diffx * cached_cos + diffy * cached_sin;
+            ptsyVehicle[i] = diffy * cached_cos - diffx * cached_sin;
+          }
+
+          auto coeffs = polyfit(
+              Eigen::VectorXd::Map(ptsxVehicle.data(), ptsxVehicle.size()),
+              Eigen::VectorXd::Map(ptsyVehicle.data(), ptsyVehicle.size()),
+              3);
+          double cte = polyeval(coeffs, 0.0);
+          double epsi = -atan(coeffs[1]);
+
+
+          Eigen::VectorXd state(6);
+
+          // Taken from below regarding 100ms sleep for actuator lag.
+          // 100ms = 0.1s
+          double dt = 0.1;
+          double px_l =v*dt;
+          double py_l =0.0;
+          double psi_l = -v * str / 2.67 * dt;
+          double v_l = v+throttle*dt;
+          double cte_l =  polyeval(coeffs, 0) + v * CppAD::sin(-atan(coeffs[1])) * dt;
+          double epsi_l = -atan(coeffs[1])+psi_l;
+          state << px_l, py_l, psi_l, v_l, cte_l, epsi_l;
+
+          auto vars = mpc.Solve(state, coeffs);
+          std::cout << "vars: " << vars.size() << std::endl;
+
+          double steer_value = -vars[6];
+          steer_value /= deg2rad(25.0)* 2.67;
+          double throttle_value = vars[7];
+
+          std::cout << "raw" << vars[6] << " steering: " << steer_value << std::endl;;
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
@@ -107,9 +150,9 @@ int main() {
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
 
-          //Display the MPC predicted trajectory 
-          vector<double> mpc_x_vals;
-          vector<double> mpc_y_vals;
+          //Display the MPC predicted trajectory
+          vector<double> mpc_x_vals = ptsx;
+          vector<double> mpc_y_vals = ptsy;
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
@@ -118,8 +161,8 @@ int main() {
           msgJson["mpc_y"] = mpc_y_vals;
 
           //Display the waypoints/reference line
-          vector<double> next_x_vals;
-          vector<double> next_y_vals;
+          vector<double> next_x_vals = ptsxVehicle;
+          vector<double> next_y_vals = ptsyVehicle;
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
