@@ -133,7 +133,7 @@ class FG_eval {
 //
 // MPC class definition implementation.
 //
-MPC::MPC() {}
+MPC::MPC() : x_pred(N), y_pred(N) {}
 MPC::~MPC() {}
 
 vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
@@ -259,6 +259,11 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // Cost
   auto cost = solution.obj_value;
   std::cout << "Cost " << cost << std::endl;
+
+  for(int i=0; i < N; i++) {
+    x_pred[i] = solution.x[x_start + 1 + i];
+    y_pred[i] = solution.x[y_start + 1 + i];
+  }
 
   // TODO: Return the first actuator values. The variables can be accessed with
   // `solution.x[i]`.
