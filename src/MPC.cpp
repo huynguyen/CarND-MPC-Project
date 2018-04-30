@@ -119,7 +119,7 @@ class FG_eval {
         f0 += coeffs[i] * CppAD::pow(x0,i);
       }
 
-      AD<double> psides0 = CppAD::atan(coeffs[1]);
+      AD<double> psides0 = CppAD::atan(3*coeffs[3] * x0 * x0 + 2*coeffs[2] *x0 + coeffs[1]);
 
       // Here's `x` to get you started.
       // The idea here is to constraint this value to be 0.
@@ -202,8 +202,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // degrees (values in radians).
   // NOTE: Feel free to change this to something else.
   for (int i = delta_start; i < a_start; i++) {
-    vars_lowerbound[i] = -0.436332;
-    vars_upperbound[i] = 0.436332;
+    vars_lowerbound[i] = -0.436332 * Lf;
+    vars_upperbound[i] = 0.436332 * Lf;
   }
 
   // Acceleration/decceleration upper and lower limits.
