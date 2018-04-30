@@ -1,6 +1,7 @@
 ### Model Predictive Control Project
 
 #### Results
+![mpc_result_gif](mpc_result.gif)
 
 #### Model
 The model I used was the Global Kinematic Model found in lesson 19. This
