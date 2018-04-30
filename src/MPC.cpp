@@ -23,7 +23,7 @@ const double Lf = 2.67;
 
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 40;
+double ref_v = 60;
 
 size_t x_start = 0;
 size_t y_start = x_start + N;
@@ -51,9 +51,9 @@ class FG_eval {
     fg[0] = 0;
     double cte_weight = 2000;
     double epsi_weight = 2000;
-    double delta_weight = 5;
+    double delta_weight = 1000;
     double accel_weight = 5;
-    double delta_dt_weight = 200;
+    double delta_dt_weight = 2000;
     double accel_dt_weight = 10;
 
     // Cost based on reference state.
@@ -274,8 +274,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   std::cout << "Cost " << cost << std::endl;
 
   for(int i=0; i < N; i++) {
-    x_pred[i] = solution.x[x_start + 1 + i];
-    y_pred[i] = solution.x[y_start + 1 + i];
+    x_pred[i] = solution.x[x_start + i];
+    y_pred[i] = solution.x[y_start + i];
   }
 
   // TODO: Return the first actuator values. The variables can be accessed with
@@ -283,8 +283,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   //
   // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
   // creates a 2 element double vector.
-  return {solution.x[x_start + 1],   solution.x[y_start + 1],
-          solution.x[psi_start + 1], solution.x[v_start + 1],
-          solution.x[cte_start + 1], solution.x[epsi_start + 1],
-          solution.x[delta_start],   solution.x[a_start]};
+  vector<double> result;
+  result.push_back(solution.x[delta_start]);
+  result.push_back(solution.x[a_start]);
+  return result;
 }

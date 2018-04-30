@@ -18,6 +18,7 @@ using json = nlohmann::json;
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
+const double Lf = 2.67;
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -123,28 +124,37 @@ int main() {
 
 
           Eigen::VectorXd state(6);
-
           // Taken from below regarding 100ms sleep for actuator lag.
           // 100ms = 0.1s
           double dt = 0.1;
-          double px_l =v*dt;
-          double py_l =0.0;
-          double psi_l = -v * str / 2.67 * dt;
-          double v_l = v+throttle*dt;
-          double cte_l =  polyeval(coeffs, 0) + v * CppAD::sin(-atan(coeffs[1])) * dt;
-          double epsi_l = -atan(coeffs[1])+psi_l;
-          state << px_l, py_l, psi_l, v_l, cte_l, epsi_l;
-          //state << 0, 0, 0, v, cte, epsi;
+
+          // Project state 0.1s into the future using model.
+          // x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
+          // x[t] = 0 and cos(0) = 1
+          double px_l = v * dt;
+          // y_[t+1] = y[t] + v[t] * sin(psi[t]) * dt
+          // y[t] = 0 and sin(0) = 0
+          double py_l = 0.0;
+          // psi_[t+1] = psi[t] + v[t] / Lf * delta[t] * dt
+          // psi[t] = 0 and we flip negative because simulator is reversed.
+          double psi_l = - (v / Lf) * str * dt;
+          // v_[t+1] = v[t] + a[t] * dt
+          // throttle is really actuator value, but it kind of works as
+          // a proxy for acceleration.
+          double pv_l = v + throttle * dt;
+          // cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
+          // y[t] = 0
+          double pcte_l =  cte + v * CppAD::sin(epsi) * dt;
+          // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
+          double pepsi_l = epsi + (v / Lf) * str * dt;
+
+          state << px_l, py_l, psi_l, pv_l, pcte_l, pepsi_l;
 
           auto vars = mpc.Solve(state, coeffs);
-          std::cout << "vars: " << vars.size() << std::endl;
 
-          double Lf = 2.67;
-          double steer_value = -vars[6];
+          double steer_value = -vars[0];
           steer_value /= deg2rad(25.0) * Lf;
-          double throttle_value = vars[7];
-
-          std::cout << "raw" << vars[6] << " steering: " << steer_value << std::endl;;
+          double throttle_value = vars[1];
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
