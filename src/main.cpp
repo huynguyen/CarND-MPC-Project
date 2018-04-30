@@ -161,8 +161,15 @@ int main() {
           msgJson["mpc_y"] = mpc_y_vals;
 
           //Display the waypoints/reference line
-          vector<double> next_x_vals = ptsxVehicle;
-          vector<double> next_y_vals = ptsyVehicle;
+          vector<double> next_x_vals;
+          vector<double> next_y_vals;
+
+          int poly_inc = 2.5;
+          int num_points = 25;
+          for (int i = 1; i < num_points; i++) {
+            next_x_vals.push_back(poly_inc * i);
+            next_y_vals.push_back(polyeval(coeffs, poly_inc * i));
+          }
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
