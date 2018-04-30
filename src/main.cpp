@@ -105,13 +105,13 @@ int main() {
           vector<double> ptsxVehicle(ptsx.size());
           vector<double> ptsyVehicle(ptsy.size());
 
-          double cached_cos = cos(psi);
-          double cached_sin = sin(psi);
+          double cached_cos = cos(0-psi);
+          double cached_sin = sin(0-psi);
           for(int i=0; i < ptsx.size(); i++) {
             double diffx = ptsx[i] - px;
             double diffy = ptsy[i] - py;
-            ptsxVehicle[i] = diffx * cached_cos + diffy * cached_sin;
-            ptsyVehicle[i] = diffy * cached_cos - diffx * cached_sin;
+            ptsxVehicle[i] = diffx * cached_cos - diffy * cached_sin;
+            ptsyVehicle[i] = diffy * cached_cos + diffx * cached_sin;
           }
 
           auto coeffs = polyfit(
