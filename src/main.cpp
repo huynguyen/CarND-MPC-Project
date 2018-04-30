@@ -134,12 +134,14 @@ int main() {
           double cte_l =  polyeval(coeffs, 0) + v * CppAD::sin(-atan(coeffs[1])) * dt;
           double epsi_l = -atan(coeffs[1])+psi_l;
           state << px_l, py_l, psi_l, v_l, cte_l, epsi_l;
+          //state << 0, 0, 0, v, cte, epsi;
 
           auto vars = mpc.Solve(state, coeffs);
           std::cout << "vars: " << vars.size() << std::endl;
 
+          double Lf = 2.67;
           double steer_value = -vars[6];
-          steer_value /= deg2rad(25.0)* 2.67;
+          steer_value /= deg2rad(25.0) * Lf;
           double throttle_value = vars[7];
 
           std::cout << "raw" << vars[6] << " steering: " << steer_value << std::endl;;
